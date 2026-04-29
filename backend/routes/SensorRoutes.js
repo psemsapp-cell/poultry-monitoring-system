@@ -2,14 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db'); // MySQL connection
 
-// Store last insert time for each table
-const lastInsertTime = {
-    temperature: 0,
-    humidity: 0,
-    ammonia: 0,
-    carbon: 0
-};
-
 // Helper function to maintain 20 rows per user
 function maintainLimit(table, user_id, callback) {
     const queryCount = `SELECT COUNT(*) AS count FROM ${table} WHERE user_id = ?`;
@@ -17,8 +9,8 @@ function maintainLimit(table, user_id, callback) {
         if (err) return callback(err);
 
         const rowCount = result[0].count;
-        if (rowCount >= 20) {
-            const excess = rowCount - 19; 
+        if (rowCount >= 100000) {
+            const excess = rowCount - 99999; 
             const selectQuery = `
                 SELECT id FROM ${table}
                 WHERE user_id = ?
@@ -41,14 +33,8 @@ function maintainLimit(table, user_id, callback) {
     });
 }
 
-// Helper to insert data if 1 hour has passed
-function insertWithHourlyLimit(table, data, tableKey, res) {
-    const now = Date.now();
-    if (now - lastInsertTime[tableKey] < 60 * 60 * 1000) {
-        // Less than 1 hour since last insert
-        return res.json({ message: `Data for ${table} already inserted within the last hour.` });
-    }
-
+// Helper to insert data
+function insertSensorData(table, data, res) {
     maintainLimit(table, data.user_id, (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
@@ -60,7 +46,6 @@ function insertWithHourlyLimit(table, data, tableKey, res) {
 
         db.query(insertQuery, values, (err2) => {
             if (err2) return res.status(500).json({ error: err2.message });
-            lastInsertTime[tableKey] = now;
             res.json({ message: `${table} data inserted successfully` });
         });
     });
@@ -69,10 +54,9 @@ function insertWithHourlyLimit(table, data, tableKey, res) {
 // Temperature
 router.post('/temperature', (req, res) => {
     const { user_id, temperature_celcius, status, date, time } = req.body;
-    insertWithHourlyLimit(
+    insertSensorData(
         'tbl_temperature',
         { user_id, date, time, temperature_celcius, status },
-        'temperature',
         res
     );
 });
@@ -80,10 +64,9 @@ router.post('/temperature', (req, res) => {
 // Humidity
 router.post('/humidity', (req, res) => {
     const { user_id, humidity_percentage, status, date, time } = req.body;
-    insertWithHourlyLimit(
+    insertSensorData(
         'tbl_humidity',
         { user_id, date, time, humidity_percentage, status },
-        'humidity',
         res
     );
 });
@@ -91,10 +74,9 @@ router.post('/humidity', (req, res) => {
 // Ammonia
 router.post('/ammonia', (req, res) => {
     const { user_id, ammonia_ppm, status, date, time } = req.body;
-    insertWithHourlyLimit(
+    insertSensorData(
         'tbl_ammonia',
         { user_id, date, time, ammonia_ppm, status },
-        'ammonia',
         res
     );
 });
@@ -102,12 +84,43 @@ router.post('/ammonia', (req, res) => {
 // CO2
 router.post('/carbon', (req, res) => {
     const { user_id, carbon_ppm, status, date, time } = req.body;
-    insertWithHourlyLimit(
+    insertSensorData(
         'tbl_carbon',
         { user_id, date, time, carbon_ppm, status },
-        'carbon',
         res
     );
 });
+
+// History endpoints
+function getSensorHistory(table, req, res) {
+    const user_id = req.params.user_id;
+    const limit = parseInt(req.query.limit) || 2000;   // default 100, frontend can request more
+    const { startDate, endDate, status } = req.query;
+
+    if (!user_id) {
+        return res.status(400).json({ error: 'user_id is required' });
+    }
+
+    let query = `SELECT * FROM ${table} WHERE user_id = ?`;
+    const params = [user_id];
+
+    // optional date filters
+    if (startDate) { query += ` AND date >= ?`; params.push(startDate); }
+    if (endDate)   { query += ` AND date <= ?`; params.push(endDate); }
+    if (status)    { query += ` AND status = ?`; params.push(status); }
+
+    query += ` ORDER BY date DESC, time DESC LIMIT ?`;
+    params.push(limit);
+
+    db.query(query, params, (err, results) => {
+        if (err) return res.status(2000).json({ error: err.message });
+        res.json(results);
+    });
+}
+
+router.get('/temperature/:user_id', (req, res) => getSensorHistory('tbl_temperature', req, res));
+router.get('/humidity/:user_id', (req, res) => getSensorHistory('tbl_humidity', req, res));
+router.get('/ammonia/:user_id', (req, res) => getSensorHistory('tbl_ammonia', req, res));
+router.get('/carbon/:user_id', (req, res) => getSensorHistory('tbl_carbon', req, res));
 
 module.exports = router;
