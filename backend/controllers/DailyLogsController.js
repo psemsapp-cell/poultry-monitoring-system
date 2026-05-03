@@ -40,16 +40,29 @@ exports.getDailyLogById = (req, res) => {
   });
 };
 
-// ➕ Add daily log
+// ➕ Add daily mortality log
 exports.addDailyLog = (req, res) => {
   try {
-    const { user_id, batch_id, mortality_id, date, feed } = req.body;
+    const { user_id, batch_id, mortality_id, date, quantity } = req.body;
 
-    if (!user_id || !mortality_id || !date) {
-      return res.status(400).json({ error: 'user_id, mortality_id, and date are required' });
+    if (!user_id || !mortality_id || !date || !quantity) {
+      return res.status(400).json({
+        error: 'user_id, mortality_id, date, and quantity are required'
+      });
     }
 
-    const dailyLogData = { user_id,batch_id, mortality_id, date, feed };
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1) {
+      return res.status(400).json({ error: 'quantity must be a positive number' });
+    }
+
+    const dailyLogData = {
+      user_id,
+      batch_id: batch_id || null,
+      mortality_id,
+      date,
+      quantity: qty,
+    };
 
     DailyLog.create(dailyLogData, (err, result) => {
       if (err) {
@@ -57,8 +70,8 @@ exports.addDailyLog = (req, res) => {
         return res.status(500).json({ error: err });
       }
       res.status(201).json({
-        message: 'Daily log successfully created',
-        id: result.insertId
+        message: 'Daily mortality log successfully created',
+        id: result.insertId,
       });
     });
   } catch (error) {
@@ -67,39 +80,45 @@ exports.addDailyLog = (req, res) => {
   }
 };
 
-// ✏️ Update daily log
+// ✏️ Update daily mortality log
 exports.updateDailyLog = (req, res) => {
   const id = req.params.id;
-  const { mortality_id, batch_id, date, feed } = req.body;
+  const { batch_id, mortality_id, date, quantity } = req.body;
 
-  if (!mortality_id || !date) {
-    return res.status(400).json({ error: 'mortality_id and date are required' });
+  if (!mortality_id || !date || !quantity) {
+    return res.status(400).json({ error: 'mortality_id, date, and quantity are required' });
   }
 
-  // Ensure the record exists
+  const qty = parseInt(quantity, 10);
+  if (isNaN(qty) || qty < 1) {
+    return res.status(400).json({ error: 'quantity must be a positive number' });
+  }
+
   DailyLog.getById(id, (err, dailyLog) => {
     if (err) {
       console.error('Error fetching daily log:', err);
       return res.status(500).json({ error: 'Failed to fetch daily log' });
     }
-
     if (dailyLog.length === 0) {
       return res.status(404).json({ message: 'Daily log not found' });
     }
 
-    const updatedData = { mortality_id, batch_id, date, feed };
+    const updatedData = {
+      batch_id: batch_id || null,
+      mortality_id,
+      date,
+      quantity: qty,
+    };
 
     DailyLog.update(id, updatedData, (err, result) => {
       if (err) {
         console.error('Update error:', err);
         return res.status(500).json({ error: 'Failed to update daily log' });
       }
-
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: 'Daily log not found' });
       }
-
-      res.json({ message: 'Daily log updated successfully!' });
+      res.json({ message: 'Daily mortality log updated successfully!' });
     });
   });
 };
@@ -113,11 +132,9 @@ exports.deleteDailyLog = (req, res) => {
       console.error('Delete error:', err);
       return res.status(500).json({ error: 'Failed to delete daily log' });
     }
-
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Daily log not found' });
     }
-
-    res.json({ message: 'Daily log deleted successfully!' });
+    res.json({ message: 'Daily mortality log deleted successfully!' });
   });
 };

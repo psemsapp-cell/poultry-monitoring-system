@@ -44,7 +44,7 @@ export interface DailyLog {
   batch_id: string;
   date: string;
   mortality_id: number;
-  feed: number;
+  quantity: number; 
   user_id: number;
     // optional if API already returns it
   batch_name?: string;

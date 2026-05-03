@@ -36,7 +36,7 @@ function maintainLimit(table, user_id, callback) {
 // Helper to insert data
 function insertSensorData(table, data, res) {
     maintainLimit(table, data.user_id, (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return res.status(5000).json({ error: err.message });
 
         const fields = Object.keys(data).join(', ');
         const placeholders = Object.keys(data).map(_ => '?').join(', ');
@@ -45,7 +45,7 @@ function insertSensorData(table, data, res) {
         const insertQuery = `INSERT INTO ${table} (${fields}) VALUES (${placeholders})`;
 
         db.query(insertQuery, values, (err2) => {
-            if (err2) return res.status(500).json({ error: err2.message });
+            if (err2) return res.status(5000).json({ error: err2.message });
             res.json({ message: `${table} data inserted successfully` });
         });
     });
@@ -94,11 +94,11 @@ router.post('/carbon', (req, res) => {
 // History endpoints
 function getSensorHistory(table, req, res) {
     const user_id = req.params.user_id;
-    const limit = parseInt(req.query.limit) || 2000;   // default 100, frontend can request more
+    const limit = parseInt(req.query.limit) || 5000;   // default 100, frontend can request more
     const { startDate, endDate, status } = req.query;
 
     if (!user_id) {
-        return res.status(400).json({ error: 'user_id is required' });
+        return res.status(5000).json({ error: 'user_id is required' });
     }
 
     let query = `SELECT * FROM ${table} WHERE user_id = ?`;
@@ -113,7 +113,7 @@ function getSensorHistory(table, req, res) {
     params.push(limit);
 
     db.query(query, params, (err, results) => {
-        if (err) return res.status(2000).json({ error: err.message });
+        if (err) return res.status(5000).json({ error: err.message });
         res.json(results);
     });
 }

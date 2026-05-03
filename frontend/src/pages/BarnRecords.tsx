@@ -55,8 +55,6 @@ const dailyLogColumns = [
   { key: 'mortality_cause', label: 'Mortality Cause', sortable: true },
   { key: 'mortality_quantity', label: 'Mortality Qty', sortable: true },
   { key: 'mortality_notes', label: 'Mortality Notes', sortable: false },
-
-  { key: 'feed', label: 'Feed (kg)', sortable: true }
 ];
 
 
@@ -587,16 +585,11 @@ const dailyLogsWithMortalityDetails = useMemo(() => {
   return daily_logs.map((log: any) => {
     const mort = mortalityById.get(String(log.mortality_id));
     const batch = batchById.get(String(log.batch_id));
-
     return {
       ...log,
-
-      // ✅ If API doesn't provide batch_name, derive from batches:
       batch_name: log.batch_name ?? batch?.batch_name ?? '',
-
-      // ✅ Mortality details from mortality table
       mortality_cause: mort?.cause ?? '—',
-      mortality_quantity: mort?.quantity ?? 0,
+      mortality_quantity: log.quantity ?? 0,     // ✅ reads from tbl_daily.quantity
       mortality_notes: mort?.notes ?? '—',
     };
   });
