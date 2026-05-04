@@ -605,7 +605,6 @@ const dailyLogsWithMortalityDetails = useMemo(() => {
         batch_id: logData.batch_id!,
         date: logData.date!,
         mortality_id: logData.mortality_id!,
-        feed: logData.feed!
       } as DailyLog;
       setDailyLogs(prev => [...prev, newLog]);
     } else {

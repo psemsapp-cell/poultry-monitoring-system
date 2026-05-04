@@ -14,16 +14,16 @@ exports.getForecast = (req, res) => {
       return res.status(500).json({ error: err.message });
     }
 
-    const formatted = results.map(row => ({
-      month: row.month,
-      batchId: row.batch_id,
-      batch: row.batch_name,
-      breed: row.breed,
-      actualMortality: row.actual_mortality,
-      predictedMortality: row.predicted_mortality,
-      actualHarvest: row.actual_harvest,
-      predictedHarvest: row.harvest_mortality,
-    }));
+   const formatted = results.map(row => ({
+  month: row.month,
+  batchId: row.batch_id,
+  batch: row.batch_name,
+  breed: row.breed,
+  actualMortality: row.actual_mortality,
+  predictedMortality: row.predicted_mortality,
+  actualHarvest: row.actual_harvest,
+  predictedHarvest: row.predicted_harvest,  // ✅ must be this exact column
+}));
 
     res.json(formatted);
   });

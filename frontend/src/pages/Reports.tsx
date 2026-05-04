@@ -96,14 +96,17 @@ const Reports: React.FC = () => {
     const res = await fetch(`${apiUrl}/api/harvest_data/${currentUserId}`);
     const data = await res.json();
     const arr = Array.isArray(data) ? data : [];
-    const formatted = arr.map((item: any) => ({
-      batch: String(item.batch_name ?? item.batch ?? '').trim(),
-      barn: String(item.barn_name ?? item.barn ?? item.barnName ?? '').trim(),
-      barn_id: item.barn_id != null ? Number(item.barn_id) : item.barnId != null ? Number(item.barnId) : undefined,
-      chickens: Number(item.no_harvest ?? item.chickens ?? 0),
-      boxes: Number(item.no_boxes ?? item.boxes ?? 0),
-      date: String(item.date ?? item.harvest_date ?? '').slice(0, 10),
-    }));
+    const formatted = arr
+      .map((item: any) => ({
+        batch:   String(item.batch_name ?? item.batch ?? '').trim(),
+        barn:    String(item.barn_name  ?? item.barn  ?? item.barnName ?? '').trim(),
+        barn_id: item.barn_id != null ? Number(item.barn_id) : item.barnId != null ? Number(item.barnId) : undefined,
+        chickens: Number(item.no_harvest ?? item.chickens ?? 0),
+        boxes:    Number(item.no_boxes   ?? item.boxes    ?? 0),
+        date:     String(item.date ?? item.harvest_date ?? '').slice(0, 10),
+      }))
+      // ✅ Filter out rows with no batch name so "Unknown" never shows on chart
+      .filter((item: any) => item.batch !== '');
     setHarvestData(formatted);
   }, [apiUrl, currentUserId]);
 
@@ -112,34 +115,33 @@ const Reports: React.FC = () => {
     const res = await fetch(`${apiUrl}/api/mortality_data/${currentUserId}`);
     const data = await res.json();
     const arr = Array.isArray(data) ? data : [];
-    const formatted: MortalityRow[] = arr.map((item: any) => ({
-      id: item.id ?? item.mortality_id ?? item.mortalityId,
-      barn: String(item.barn_name ?? item.barn ?? item.barnName ?? '').trim(),
-      barn_id: item.barn_id != null ? Number(item.barn_id) : item.barnId != null ? Number(item.barnId) : undefined,
-      mortality: Number(item.quantity ?? item.mortality ?? 0),
-      cause: String(item.cause ?? ''),
-      date: String(item.date ?? '').slice(0, 10),
-    }));
+    const formatted: MortalityRow[] = arr
+      .map((item: any) => ({
+        id:      item.id ?? item.mortality_id ?? item.mortalityId,
+        barn:    String(item.barn_name ?? item.barn ?? item.barnName ?? '').trim(),
+        barn_id: item.barn_id != null ? Number(item.barn_id) : item.barnId != null ? Number(item.barnId) : undefined,
+        mortality: Number(item.quantity ?? item.mortality ?? 0),
+        cause:   String(item.cause ?? ''),
+        date:    String(item.date ?? '').slice(0, 10),
+      }))
+      // ✅ Filter out rows with no barn name
+      .filter((item: any) => item.barn !== '');
     setMortalityData(formatted);
   }, [apiUrl, currentUserId]);
 
-  // ✅ FIX 1: Map both camelCase and snake_case field names from the API response
   const fetchForecast = useCallback(async () => {
     if (!apiUrl || !currentUserId) return;
     try {
       const res = await fetch(`${apiUrl}/api/monthly_forecast/?user_id=${currentUserId}`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : [];
-
       const mapped: Forecast[] = arr.map((item: any) => ({
-        month: item.month ?? item.month_year ?? '',
-        // ✅ Accept both camelCase (actualMortality) and snake_case (actual_mortality)
+        month:              item.month ?? item.month_year ?? '',
         actualMortality:    Number(item.actualMortality    ?? item.actual_mortality    ?? 0),
         predictedMortality: Number(item.predictedMortality ?? item.predicted_mortality ?? 0),
         actualHarvest:      Number(item.actualHarvest      ?? item.actual_harvest      ?? 0),
         predictedHarvest:   Number(item.predictedHarvest   ?? item.predicted_harvest   ?? 0),
       }));
-
       setForecastData(mapped);
     } catch (err) {
       console.error('Error fetching forecast:', err);
@@ -163,12 +165,12 @@ const Reports: React.FC = () => {
       const data = await res.json();
       if (Array.isArray(data)) {
         setSensorData(data.map((d: any) => ({
-          date: String(d.date).slice(0, 10),
-          time: String(d.time),
-          value: Number(d.value),
-          type: d.type,
+          date:   String(d.date).slice(0, 10),
+          time:   String(d.time),
+          value:  Number(d.value),
+          type:   d.type,
           status: d.status,
-          id: `${d.type}-${d.date}-${d.time}`,
+          id:     `${d.type}-${d.date}-${d.time}`,
         })));
       }
     } catch (err) {
@@ -199,24 +201,24 @@ const Reports: React.FC = () => {
   const formatBatchReportData = (data: BatchReportRow[]) => {
     return (Array.isArray(data) ? data : []).map((d) => ({
       ...d,
-      date_started: d.date_started ? new Date(d.date_started).toISOString().split('T')[0] : '',
-      date_completed: d.date_completed ? new Date(d.date_completed).toISOString().split('T')[0] : '',
+      date_started:    d.date_started    ? new Date(d.date_started).toISOString().split('T')[0]    : '',
+      date_completed:  d.date_completed  ? new Date(d.date_completed).toISOString().split('T')[0]  : '',
       avg_temperature: d.avg_temperature == null ? '—' : Number(d.avg_temperature).toFixed(2),
-      avg_humidity: d.avg_humidity == null ? '—' : Number(d.avg_humidity).toFixed(2),
-      avg_ammonia: d.avg_ammonia == null ? '—' : Number(d.avg_ammonia).toFixed(2),
-      avg_co2: d.avg_co2 == null ? '—' : Number(d.avg_co2).toFixed(2),
+      avg_humidity:    d.avg_humidity    == null ? '—' : Number(d.avg_humidity).toFixed(2),
+      avg_ammonia:     d.avg_ammonia     == null ? '—' : Number(d.avg_ammonia).toFixed(2),
+      avg_co2:         d.avg_co2         == null ? '—' : Number(d.avg_co2).toFixed(2),
     }));
   };
 
   const batchReportColumns = [
-    { key: 'batch_id', label: 'ID', sortable: true },
-    { key: 'batch_name', label: 'Batch Name', sortable: true },
-    { key: 'date_started', label: 'Date Started', sortable: true },
-    { key: 'date_completed', label: 'Date Completed', sortable: true },
-    { key: 'avg_temperature', label: 'Avg Temperature (°C)', sortable: true },
-    { key: 'avg_humidity', label: 'Avg Humidity (%)', sortable: true },
-    { key: 'avg_ammonia', label: 'Avg Ammonia (ppm)', sortable: true },
-    { key: 'avg_co2', label: 'Avg CO₂ (ppm)', sortable: true },
+    { key: 'batch_id',       label: 'ID',                    sortable: true },
+    { key: 'batch_name',     label: 'Batch Name',            sortable: true },
+    { key: 'date_started',   label: 'Date Started',          sortable: true },
+    { key: 'date_completed', label: 'Date Completed',        sortable: true },
+    { key: 'avg_temperature',label: 'Avg Temperature (°C)',  sortable: true },
+    { key: 'avg_humidity',   label: 'Avg Humidity (%)',      sortable: true },
+    { key: 'avg_ammonia',    label: 'Avg Ammonia (ppm)',     sortable: true },
+    { key: 'avg_co2',        label: 'Avg CO₂ (ppm)',         sortable: true },
   ];
 
   // ─── FIREBASE: live readings ───────────────────────────────────────────────
@@ -234,10 +236,10 @@ const Reports: React.FC = () => {
         const classifyStatus = (type: string, value: number) => {
           switch (type) {
             case 'temperature': return value > 35 ? 'Critical' : value > 30 ? 'Warning' : 'Normal';
-            case 'humidity': return value > 85 ? 'Warning' : 'Normal';
-            case 'ammonia': return value > 10 ? 'Critical' : value > 5 ? 'Warning' : 'Normal';
-            case 'co2': return value > 1200 ? 'Critical' : value > 1000 ? 'Warning' : 'Normal';
-            default: return 'Normal';
+            case 'humidity':    return value > 85 ? 'Warning' : 'Normal';
+            case 'ammonia':     return value > 10 ? 'Critical' : value > 5 ? 'Warning' : 'Normal';
+            case 'co2':         return value > 1200 ? 'Critical' : value > 1000 ? 'Warning' : 'Normal';
+            default:            return 'Normal';
           }
         };
 
@@ -245,16 +247,16 @@ const Reports: React.FC = () => {
         if (date.startsWith(selectedMonth) || selectedMonth === currentMonth) {
           const newReadings: SensorReading[] = [
             { type: 'temperature', value: data.temperature },
-            { type: 'humidity', value: data.humidity },
-            { type: 'ammonia', value: data.nh3 },
-            { type: 'co2', value: data.co2 },
+            { type: 'humidity',    value: data.humidity },
+            { type: 'ammonia',     value: data.nh3 },
+            { type: 'co2',         value: data.co2 },
           ].map(r => ({
             date,
             time,
-            value: Number(r.value),
-            type: r.type,
+            value:  Number(r.value),
+            type:   r.type,
             status: classifyStatus(r.type, Number(r.value)),
-            id: `live-${r.type}-${time}`,
+            id:     `live-${r.type}-${time}`,
           }));
 
           setSensorData(prev => {
@@ -285,7 +287,7 @@ const Reports: React.FC = () => {
     return Array.from(grouped.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, { total, count }]) => ({
-        time: date.slice(5),
+        time:  date.slice(5),
         value: parseFloat((total / count).toFixed(2)),
       }));
   };
@@ -293,7 +295,7 @@ const Reports: React.FC = () => {
   const barnNameById = useMemo(() => {
     const map = new Map<number, string>();
     harvestData.forEach((h: any) => {
-      const id = Number(h?.barn_id);
+      const id   = Number(h?.barn_id);
       const name = String(h?.barn ?? h?.barn_name ?? '').trim();
       if (Number.isFinite(id) && id > 0 && name) map.set(id, name);
     });
@@ -304,11 +306,15 @@ const Reports: React.FC = () => {
     const inMonth = (r: MortalityRow) => !r.date || r.date.startsWith(selectedMonth);
     const grouped = new Map<number, { label: string; mortality: number }>();
     mortalityData.filter(inMonth).forEach((r) => {
-      const barnId = r.barn_id != null ? Number(r.barn_id) : 0;
+      const barnId   = r.barn_id != null ? Number(r.barn_id) : 0;
       const barnName =
         (barnId && barnNameById.get(barnId)) ||
         String(r.barn ?? '').trim() ||
-        (barnId ? `Barn #${barnId}` : 'Unknown Barn');
+        (barnId ? `Barn #${barnId}` : null);
+
+      // ✅ Skip rows with no barn name so "Unknown Barn" never shows on chart
+      if (!barnName) return;
+
       const prev = grouped.get(barnId) || { label: barnName, mortality: 0 };
       prev.mortality += Number(r.mortality || 0);
       grouped.set(barnId, prev);
@@ -316,28 +322,26 @@ const Reports: React.FC = () => {
     return Array.from(grouped.values());
   }, [mortalityData, selectedMonth, barnNameById]);
 
-  // ✅ FIX 2: Filter forecastData by selectedMonth so the summary matches the selected month
   const latest: Forecast | null = useMemo(() => {
     const filtered = forecastData.filter(f =>
       f.month && String(f.month).startsWith(selectedMonth)
     );
-    // Use month-filtered entry if available, otherwise fall back to last entry overall
     if (filtered.length > 0) return filtered[filtered.length - 1];
     return forecastData.length > 0 ? forecastData[forecastData.length - 1] : null;
   }, [forecastData, selectedMonth]);
 
   const batchSummaryReport = useMemo(() => {
     return batchReports.map((r) => ({
-      batch: r.batch_name,
+      batch:             r.batch_name,
       harvestedChickens: r.harvested_chickens,
-      harvestedBoxes: r.harvested_boxes,
-      mortalityCount: r.mortality_count,
-      mortalityRate: Number(r.mortality_rate).toFixed(2),
-      avgTemperature: r.avg_temperature != null ? Number(r.avg_temperature).toFixed(2) : '—',
-      avgHumidity: r.avg_humidity != null ? Number(r.avg_humidity).toFixed(2) : '—',
-      avgAmmonia: r.avg_ammonia != null ? Number(r.avg_ammonia).toFixed(2) : '—',
-      avgCO2: r.avg_co2 != null ? Number(r.avg_co2).toFixed(2) : '—',
-      predictedHarvest: r.predicted_harvest ?? '—',
+      harvestedBoxes:    r.harvested_boxes,
+      mortalityCount:    r.mortality_count,
+      mortalityRate:     Number(r.mortality_rate).toFixed(2),
+      avgTemperature:    r.avg_temperature != null ? Number(r.avg_temperature).toFixed(2) : '—',
+      avgHumidity:       r.avg_humidity    != null ? Number(r.avg_humidity).toFixed(2)    : '—',
+      avgAmmonia:        r.avg_ammonia     != null ? Number(r.avg_ammonia).toFixed(2)     : '—',
+      avgCO2:            r.avg_co2         != null ? Number(r.avg_co2).toFixed(2)         : '—',
+      predictedHarvest:  r.predicted_harvest  ?? '—',
       predictedMortality: r.predicted_mortality ?? '—',
     }));
   }, [batchReports]);
@@ -516,10 +520,10 @@ const Reports: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 section">
           {(['temperature', 'humidity', 'ammonia', 'co2'] as const).map(type => {
             const meta: Record<string, { title: string; unit: string }> = {
-              temperature: { title: 'Temperature', unit: '°C' },
-              humidity:    { title: 'Humidity',    unit: '%'  },
-              ammonia:     { title: 'Ammonia',     unit: 'ppm'},
-              co2:         { title: 'CO₂',         unit: 'ppm'},
+              temperature: { title: 'Temperature', unit: '°C'  },
+              humidity:    { title: 'Humidity',    unit: '%'   },
+              ammonia:     { title: 'Ammonia',     unit: 'ppm' },
+              co2:         { title: 'CO₂',         unit: 'ppm' },
             };
             const { title, unit } = meta[type];
             const chartData = chartDataByType(type);
@@ -558,7 +562,6 @@ const Reports: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             <div>
               <p className="text-sm font-medium text-gray-600 mb-2">Actual Mortality</p>
-              {/* ✅ FIX 3: Show 0 explicitly instead of hiding it, use '—' only when truly null */}
               <p className="text-2xl font-bold text-red-600">
                 {latest != null ? latest.actualMortality : '—'}
               </p>

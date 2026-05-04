@@ -12,7 +12,8 @@ exports.getAll = (filters, callback) => {
       f.actual_mortality,
       f.predicted_mortality,
       f.harvest_mortality,
-      f.actual_harvest
+      f.actual_harvest,
+      f.predicted_harvest
     FROM tbl_forecast f
     JOIN tbl_batch b ON f.batch_id = b.id
     WHERE 1=1
@@ -20,7 +21,6 @@ exports.getAll = (filters, callback) => {
 
   const params = [];
 
-  // 🔹 Date filter
   if (filters.startDate) {
     sql += ` AND f.date >= ?`;
     params.push(filters.startDate);
@@ -31,13 +31,11 @@ exports.getAll = (filters, callback) => {
     params.push(filters.endDate);
   }
 
-  // 🔹 Batch filter
   if (filters.batchId) {
     sql += ` AND f.batch_id = ?`;
     params.push(filters.batchId);
   }
 
-  // 🔹 Breed filter
   if (filters.breed) {
     sql += ` AND b.breed = ?`;
     params.push(filters.breed);
